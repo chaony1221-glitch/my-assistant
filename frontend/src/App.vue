@@ -8,10 +8,6 @@ interface ChatMessage {
   content: string;
 }
 
-interface ChatResponse {
-  reply: string;
-}
-
 const input = ref("");
 const messages = ref<ChatMessage[]>([
   {
@@ -33,6 +29,38 @@ async function scrollToBottom() {
   });
 }
 
+function appendToMessage(index: number, chunk: string) {
+  const message = messages.value[index];
+  if (!message) return;
+
+  messages.value[index] = {
+    ...message,
+    content: message.content + chunk,
+  };
+}
+
+async function readStream(response: Response, messageIndex: number) {
+  if (!response.body) {
+    throw new Error("浏览器不支持流式响应");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    appendToMessage(messageIndex, decoder.decode(value, { stream: true }));
+    await scrollToBottom();
+  }
+
+  const remaining = decoder.decode();
+  if (remaining) {
+    appendToMessage(messageIndex, remaining);
+  }
+}
+
 async function sendMessage() {
   const content = input.value.trim();
   if (!content || isSending.value) return;
@@ -40,6 +68,10 @@ async function sendMessage() {
   errorMessage.value = "";
   input.value = "";
   messages.value.push({ role: "user", content });
+  messages.value.push({ role: "assistant", content: "" });
+
+  const assistantIndex = messages.value.length - 1;
+
   isSending.value = true;
   await scrollToBottom();
 
@@ -50,7 +82,7 @@ async function sendMessage() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        messages: messages.value.slice(1).map((message) => ({
+        messages: messages.value.slice(1, assistantIndex).map((message) => ({
           role: message.role,
           content: message.content,
         })),
@@ -61,12 +93,19 @@ async function sendMessage() {
       throw new Error(`请求失败：${response.status}`);
     }
 
-    const data = (await response.json()) as ChatResponse;
-    messages.value.push({
-      role: "assistant",
-      content: data.reply || "我暂时没有收到有效回复。",
-    });
+    await readStream(response, assistantIndex);
+
+    if (!messages.value[assistantIndex]?.content.trim()) {
+      messages.value[assistantIndex] = {
+        role: "assistant",
+        content: "我暂时没有收到有效回复。",
+      };
+    }
   } catch (error) {
+    if (!messages.value[assistantIndex]?.content) {
+      messages.value.splice(assistantIndex, 1);
+    }
+
     errorMessage.value =
       error instanceof Error ? error.message : "发送失败，请稍后再试。";
   } finally {
@@ -94,13 +133,9 @@ async function sendMessage() {
           class="message-row"
           :class="message.role"
         >
-          <div class="message-bubble">
-            {{ message.content }}
+          <div class="message-bubble" :class="{ typing: isSending && !message.content }">
+            {{ message.content || "思考中..." }}
           </div>
-        </article>
-
-        <article v-if="isSending" class="message-row assistant">
-          <div class="message-bubble typing">思考中...</div>
         </article>
       </div>
 
