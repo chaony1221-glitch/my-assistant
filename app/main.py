@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 
-from app.api.weather import router as weather_router
 from app.api.chat import router as chat_router
 
 app = FastAPI(
@@ -16,5 +15,4 @@ def root():
         "message": "Hello My Assistant"
     }
 
-app.include_router(weather_router)
 app.include_router(chat_router)
