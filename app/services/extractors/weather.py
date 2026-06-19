@@ -1,7 +1,8 @@
 from app.services.llm import LLM
 
-#从用户提问中提取城市名称
+
 def extract_city(user_message: str) -> str | None:
+    """从用户提问中提取城市名称。"""
     llm = LLM()
 
     prompt = f"""
@@ -19,7 +20,7 @@ def extract_city(user_message: str) -> str | None:
     city = llm.chat([
         {
             "role": "user",
-            "content": prompt
+            "content": prompt,
         }
     ]).strip()
 

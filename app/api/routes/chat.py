@@ -3,12 +3,11 @@ from fastapi.responses import StreamingResponse
 
 from app.models.chat import ChatRequest
 from app.services.agent import simple_agent
-# from app.services.llm import LLM
 
 
 router = APIRouter(
     prefix="/chat",
-    tags=["chat"]
+    tags=["chat"],
 )
 
 
@@ -21,5 +20,5 @@ def chat(req: ChatRequest):
 
     return StreamingResponse(
         simple_agent(messages),
-        media_type="text/plain"
+        media_type="text/plain",
     )
