@@ -3,7 +3,7 @@ from collections.abc import Generator
 from openai import OpenAI
 
 from app.core.config import settings
-from app.prompts.chat import SYSTEM_PROMPT
+from app.prompts.system import CHAT_SYSTEM_PROMPT
 
 
 client = OpenAI(
@@ -26,7 +26,7 @@ class LLM:
             messages=[
                 {
                     "role": "system",
-                    "content": SYSTEM_PROMPT,
+                    "content": CHAT_SYSTEM_PROMPT,
                 },
                 *messages,
             ],

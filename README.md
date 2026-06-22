@@ -18,7 +18,7 @@
 │   │   └── routes/          # FastAPI 路由入口
 │   ├── core/                # 配置、启动参数等项目核心设置
 │   ├── models/              # Pydantic 请求与响应模型
-│   ├── prompts/             # 系统提示词与可复用 prompt
+│   ├── prompts/             # 系统提示词与按场景管理的 prompt 构造函数
 │   ├── services/            # agent 编排、LLM 封装、信息提取等业务逻辑
 │   │   └── extractors/      # 从用户输入中抽取结构化信息
 │   ├── tools/               # agent 可调用的工具封装
@@ -40,7 +40,7 @@
 - `tools` 放可被 agent 调用的外部能力，比如天气、搜索、文件读写等。
 - `models` 放接口输入输出模型，让路由和工具返回值更清晰。
 - `core/config.py` 集中管理模型地址、模型名和应用元信息，避免散落在业务代码里。
-- `prompts` 单独放提示词，方便后续迭代不同角色或不同任务的 prompt。
+- `prompts` 单独管理提示词：固定系统提示词放在 `system.py`，需要拼接用户输入或工具结果的 prompt 用函数生成。
 
 ## 环境准备
 
