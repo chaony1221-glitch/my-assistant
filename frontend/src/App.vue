@@ -6,6 +6,7 @@ type Role = "user" | "assistant";
 interface ChatMessage {
   role: Role;
   content: string;
+  created_at?: string | null;
 }
 
 const input = ref("");
@@ -21,6 +22,29 @@ const errorMessage = ref("");
 const messagesEl = ref<HTMLElement | null>(null);
 
 const canSend = computed(() => input.value.trim().length > 0 && !isSending.value);
+const canClear = computed(() => !isSending.value && messages.value.length > 0);
+
+function nowTimestamp() {
+  return new Date().toISOString();
+}
+
+function formatTimestamp(timestamp?: string | null) {
+  if (!timestamp) return "";
+
+  const normalizedTimestamp = timestamp.includes("T")
+    ? timestamp
+    : `${timestamp.replace(" ", "T")}Z`;
+  const date = new Date(normalizedTimestamp);
+
+  if (Number.isNaN(date.getTime())) return timestamp;
+
+  return date.toLocaleString("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 async function scrollToBottom() {
   await nextTick();
@@ -55,6 +79,28 @@ async function loadHistory() {
   }
 }
 
+async function clearHistory() {
+  if (isSending.value) return;
+
+  errorMessage.value = "";
+
+  try {
+    const response = await fetch("/api/chat/history", {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      throw new Error(`清空失败：${response.status}`);
+    }
+
+    messages.value = [...defaultMessages];
+    await scrollToBottom();
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : "清空失败，请稍后再试。";
+  }
+}
+
 async function readStream(response: Response, messageIndex: number) {
   if (!response.body) {
     throw new Error("浏览器不支持流式响应");
@@ -83,8 +129,8 @@ async function sendMessage() {
 
   errorMessage.value = "";
   input.value = "";
-  messages.value.push({ role: "user", content });
-  messages.value.push({ role: "assistant", content: "" });
+  messages.value.push({ role: "user", content, created_at: nowTimestamp() });
+  messages.value.push({ role: "assistant", content: "", created_at: nowTimestamp() });
 
   const assistantIndex = messages.value.length - 1;
 
@@ -117,6 +163,7 @@ async function sendMessage() {
       messages.value[assistantIndex] = {
         role: "assistant",
         content: "我暂时没有收到有效回复。",
+        created_at: nowTimestamp(),
       };
     }
   } catch (error) {
@@ -143,7 +190,14 @@ onMounted(loadHistory);
           <p class="eyebrow">My Assistant</p>
           <h1>AI 对话助手</h1>
         </div>
-        <span class="status-dot" title="连接到本地后端"></span>
+        <button
+          class="clear-button"
+          type="button"
+          :disabled="!canClear"
+          @click="clearHistory"
+        >
+          清空记录
+        </button>
       </header>
 
       <div ref="messagesEl" class="message-list">
@@ -153,8 +207,13 @@ onMounted(loadHistory);
           class="message-row"
           :class="message.role"
         >
-          <div class="message-bubble" :class="{ typing: isSending && !message.content }">
-            {{ message.content || "思考中..." }}
+          <div class="message-stack">
+            <div class="message-bubble" :class="{ typing: isSending && !message.content }">
+              {{ message.content || "思考中..." }}
+            </div>
+            <time v-if="message.created_at" class="message-time">
+              {{ formatTimestamp(message.created_at) }}
+            </time>
           </div>
         </article>
       </div>

@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   color: #18212f;
   background: #eef2f7;
   font-family:
@@ -67,13 +67,20 @@ h1 {
   line-height: 1.2;
 }
 
-.status-dot {
-  width: 12px;
-  height: 12px;
+.clear-button {
+  min-height: 38px;
   flex: 0 0 auto;
-  border-radius: 999px;
-  background: #22a06b;
-  box-shadow: 0 0 0 5px rgba(34, 160, 107, 0.14);
+  border: 1px solid #cfd8e3;
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #334155;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.clear-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .message-list {
@@ -99,8 +106,23 @@ h1 {
   justify-content: flex-start;
 }
 
-.message-bubble {
+.message-stack {
+  display: flex;
   max-width: min(72%, 640px);
+  flex-direction: column;
+  gap: 5px;
+}
+
+.message-row.user .message-stack {
+  align-items: flex-end;
+}
+
+.message-row.assistant .message-stack {
+  align-items: flex-start;
+}
+
+.message-bubble {
+  width: 100%;
   padding: 12px 14px;
   border-radius: 8px;
   line-height: 1.65;
@@ -117,6 +139,12 @@ h1 {
   color: #1f2937;
   border: 1px solid #e2e8f0;
   background: #ffffff;
+}
+
+.message-time {
+  color: #7a8798;
+  font-size: 12px;
+  line-height: 1.2;
 }
 
 .typing {
@@ -187,7 +215,7 @@ h1 {
     padding-inline: 16px;
   }
 
-  .message-bubble {
+  .message-stack {
     max-width: 88%;
   }
 

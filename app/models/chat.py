@@ -4,6 +4,7 @@
 class ChatMessage(BaseModel):
     role: str
     content: str
+    created_at: str | None = None
 
 
 class ChatRequest(BaseModel):

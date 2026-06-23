@@ -1,6 +1,6 @@
 ﻿from collections.abc import Generator
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 from fastapi.responses import StreamingResponse
 
 from app.models.chat import ChatHistoryResponse, ChatRequest
@@ -29,7 +29,7 @@ def stream_chat_response(messages: list[dict[str, str]]) -> Generator[str, None,
 @router.post("")
 def chat(req: ChatRequest):
     incoming_messages = [
-        message.model_dump()
+        message.model_dump(exclude={"created_at"})
         for message in req.messages
     ]
     latest_message = incoming_messages[-1]
@@ -49,5 +49,11 @@ def chat(req: ChatRequest):
 @router.get("/history", response_model=ChatHistoryResponse)
 def get_chat_history():
     return {
-        "messages": conversation_memory.get_messages(),
+        "messages": conversation_memory.get_history(),
     }
+
+
+@router.delete("/history", status_code=204)
+def clear_chat_history():
+    conversation_memory.clear()
+    return Response(status_code=204)
