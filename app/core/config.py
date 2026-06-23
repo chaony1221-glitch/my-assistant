@@ -1,4 +1,4 @@
-import os
+﻿import os
 
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -15,5 +15,7 @@ class Settings(BaseModel):
     llm_api_key: str = os.getenv("LLM_API_KEY", "lm-studio")
     chat_model: str = os.getenv("CHAT_MODEL", "qwen/qwen3.6-35b-a3b")
     extractor_model: str = os.getenv("EXTRACTOR_MODEL", "qwen3.6")
+    memory_db_path: str = os.getenv("MEMORY_DB_PATH", "data/chat_history.sqlite3")
+
 
 settings = Settings()

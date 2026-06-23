@@ -1,11 +1,12 @@
-# My Assistant
+﻿# My Assistant
 
-一个本地运行的个人 AI 助手学习项目，包含 FastAPI 后端和 Vue 3 前端。当前重点是练习 agent 的基础结构：对话入口、简单工具调用、天气查询、流式返回，以及本地 OpenAI 兼容模型服务接入。
+一个本地运行的个人 AI 助手学习项目，包含 FastAPI 后端和 Vue 3 前端。当前重点是练习 agent 的基础结构：对话入口、简单工具调用、天气查询、流式返回、SQLite 聊天记录，以及本地 OpenAI 兼容模型服务接入。
 
 ## 功能
 
-- AI 对话：前端发送多轮消息，后端通过 OpenAI 兼容接口调用本地模型。
+- AI 对话：前端发送用户消息，后端通过 OpenAI 兼容接口调用本地模型。
 - 工具调用：当用户在聊天中询问天气时，agent 会先提取城市，再调用天气工具。
+- 聊天记录：后端在单用户模式下用 SQLite 保存最近多轮消息，页面刷新后会自动恢复历史。
 - 流式响应：聊天接口使用 `StreamingResponse` 返回模型输出。
 - 前后端分离：后端使用 FastAPI，前端使用 Vue 3 + Vite + TypeScript。
 
@@ -19,7 +20,7 @@
 │   ├── core/                # 配置、启动参数等项目核心设置
 │   ├── models/              # Pydantic 请求与响应模型
 │   ├── prompts/             # 系统提示词与按场景管理的 prompt 构造函数
-│   ├── services/            # agent 编排、LLM 封装、信息提取等业务逻辑
+│   ├── services/            # agent 编排、LLM 封装、memory、信息提取等业务逻辑
 │   │   └── extractors/      # 从用户输入中抽取结构化信息
 │   ├── tools/               # agent 可调用的工具封装
 │   └── main.py              # FastAPI 应用入口
@@ -37,6 +38,7 @@
 
 - `api/routes` 只负责 HTTP 协议层，不直接写复杂业务逻辑。
 - `services` 放 agent 编排和 LLM 调用，后续可以继续拆 planner、memory、tool router。
+- `services/memory.py` 使用 SQLite 保存单用户聊天记录，默认数据库路径是 `data/chat_history.sqlite3`。
 - `tools` 放可被 agent 调用的外部能力，比如天气、搜索、文件读写等。
 - `models` 放接口输入输出模型，让路由和工具返回值更清晰。
 - `core/config.py` 集中管理模型地址、模型名和应用元信息，避免散落在业务代码里。
@@ -64,6 +66,7 @@ LLM_BASE_URL=http://localhost:1234/v1
 LLM_API_KEY=lm-studio
 CHAT_MODEL=qwen/qwen3.6-35b-a3b
 EXTRACTOR_MODEL=qwen3.6
+MEMORY_DB_PATH=data/chat_history.sqlite3
 ```
 
 ## 启动后端
@@ -121,10 +124,16 @@ curl -X POST http://127.0.0.1:8000/chat \
   -d "{\"messages\":[{\"role\":\"user\",\"content\":\"你好\"}]}"
 ```
 
+读取聊天记录：
+
+```bash
+curl http://127.0.0.1:8000/chat/history
+```
+
 ## 后续适合学习的方向
 
 - 给工具增加统一协议，例如 `name`、`description`、`run()`。
-- 增加 conversation memory，把历史消息持久化。
+- 给聊天记录增加清空按钮和对应的后端接口。
 - 把天气意图判断从关键词升级成 LLM 分类。
 - 增加测试目录 `tests/`，先覆盖聊天路由和工具格式化逻辑。
 - 给前端拆分 `components/`、`composables/`，当页面复杂后再做。

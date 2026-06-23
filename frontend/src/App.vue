@@ -1,5 +1,5 @@
-<script setup lang="ts">
-import { computed, nextTick, ref } from "vue";
+﻿<script setup lang="ts">
+import { computed, nextTick, onMounted, ref } from "vue";
 
 type Role = "user" | "assistant";
 
@@ -9,12 +9,13 @@ interface ChatMessage {
 }
 
 const input = ref("");
-const messages = ref<ChatMessage[]>([
+const defaultMessages: ChatMessage[] = [
   {
     role: "assistant",
     content: "你好，我是你的 AI 助手。有什么想聊的？",
   },
-]);
+];
+const messages = ref<ChatMessage[]>([...defaultMessages]);
 const isSending = ref(false);
 const errorMessage = ref("");
 const messagesEl = ref<HTMLElement | null>(null);
@@ -37,6 +38,21 @@ function appendToMessage(index: number, chunk: string) {
     ...message,
     content: message.content + chunk,
   };
+}
+
+async function loadHistory() {
+  try {
+    const response = await fetch("/api/chat/history");
+    if (!response.ok) return;
+
+    const data = (await response.json()) as { messages?: ChatMessage[] };
+    if (data.messages?.length) {
+      messages.value = data.messages;
+      await scrollToBottom();
+    }
+  } catch {
+    messages.value = [...defaultMessages];
+  }
 }
 
 async function readStream(response: Response, messageIndex: number) {
@@ -82,10 +98,12 @@ async function sendMessage() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        messages: messages.value.slice(1, assistantIndex).map((message) => ({
-          role: message.role,
-          content: message.content,
-        })),
+        messages: [
+          {
+            role: "user",
+            content,
+          },
+        ],
       }),
     });
 
@@ -113,6 +131,8 @@ async function sendMessage() {
     await scrollToBottom();
   }
 }
+
+onMounted(loadHistory);
 </script>
 
 <template>
