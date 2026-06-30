@@ -6,6 +6,7 @@ from openai import OpenAI
 
 from app.core.config import settings
 
+THRESHOLD = 0.70
 
 class RagStore:
     def __init__(
@@ -62,6 +63,7 @@ class RagStore:
         }
 
     def search(self, query: str, limit: int = 3) -> list[dict[str, str | int | float]]:
+        """将用户提问转换为向量并在向量库中进行搜索，返回top3"""
         normalized_query = query.strip()
         if not normalized_query:
             return []
@@ -94,19 +96,26 @@ class RagStore:
         return chunks
 
     def build_context(self, query: str, limit: int = 3) -> str:
+        """rag入口"""
         chunks = self.search(query, limit=limit)
         if not chunks:
             return ""
 
         references = []
         for index, chunk in enumerate(chunks, start=1):
-            references.append(
-                f"[{index}] Source: {chunk['filename']}\n{chunk['content']}"
-            )
+            if chunk["score"] >= THRESHOLD:
+                references.append(
+                    f"[{index}] Source: {chunk['filename']}\n{chunk['content']}"
+                )
 
         return "\n\n".join(references)
+    
+    def is_match(self, chunks: list) -> bool:
+        top1_score = chunks[0]["score"]
+        return top1_score >= THRESHOLD
 
     def _embed(self, texts: list[str]) -> list[list[float]]:
+        """将文档片段转换为向量"""
         response = self.embedding_client.embeddings.create(
             model=settings.embedding_model,
             input=texts,
@@ -114,6 +123,7 @@ class RagStore:
         return [item.embedding for item in response.data]
 
     def _split_text(self, text: str) -> list[str]:
+        """将文档分割为多个片段"""
         chunks: list[str] = []
         start = 0
         while start < len(text):

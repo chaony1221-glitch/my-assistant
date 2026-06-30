@@ -1,23 +1,20 @@
 from collections.abc import Generator
 
 from app.prompts.weather import build_weather_answer_prompt
+from app.prompts.rag import build_rag_prompt
 from app.services.llm import LLM
 from app.tools.weather import weather_tool
 from app.tools.decide import decide_tool
+from app.tools.rag import rag_tool
 
 def simple_agent(messages: list[dict]) -> Generator[str, None, None]:
     llm = LLM()
 
+    print(messages)
+
     user_message = messages[-1]["content"]
-
-    print("====USER_MESSAGE===")
-    print(user_message)
-    print("==============")
-
-
     decision = decide_tool(messages)
-    print(decision)
-    
+
     if decision.tool == "weather":
         city = decision.arguments.get("city")
 
@@ -33,9 +30,19 @@ def simple_agent(messages: list[dict]) -> Generator[str, None, None]:
         
         tool_prompt = build_weather_answer_prompt(user_message, weather)
 
-        print("====== TOOL PROMPT ======")
-        print(tool_prompt)
-        print("=========================")
+        yield from llm.stream_chat([
+            {
+                "role": "user",
+                "content": tool_prompt
+            }
+        ])
+
+        return
+    
+    context = rag_tool(user_message)
+
+    if context:
+        tool_prompt = build_rag_prompt(user_message, context)
 
         yield from llm.stream_chat([
             {
@@ -45,4 +52,6 @@ def simple_agent(messages: list[dict]) -> Generator[str, None, None]:
         ])
 
         return
+    
+    yield from llm.stream_chat(messages)
 

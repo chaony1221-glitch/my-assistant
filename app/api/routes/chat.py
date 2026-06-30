@@ -40,19 +40,6 @@ def chat(req: ChatRequest):
         latest_message["content"],
     )
     messages = conversation_memory.get_messages()
-    rag_context = rag_store.build_context(latest_message["content"])
-    if rag_context:
-        messages = [
-            *messages[:-1],
-            {
-                "role": "user",
-                "content": (
-                    "Use the following local reference snippets first. "
-                    "If they are insufficient, say what is missing and then answer with general knowledge.\n\n"
-                    f"{rag_context}\n\nUser question: {latest_message['content']}"
-                ),
-            },
-        ]
 
     return StreamingResponse(
         stream_chat_response(messages),
